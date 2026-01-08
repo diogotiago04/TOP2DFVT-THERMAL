@@ -205,7 +205,6 @@ for dx = 1:length(x)
     T = 100 + sum(k);
     Temp(dx) = T;
 end
-
 ppy = h/2:h:H;
 for i=1:1:length(ppy)
     Tpy(i)=sv(px1).T(4);
@@ -230,9 +229,7 @@ xlim([0 H]);
 function T=nodaltemp(SV,l,h)
 Tij = SV.Tij;
 T00 = SV.T00;
-
 vert = [-l/2,-h/2; l/2,-h/2; l/2,h/2; -l/2,h/2];
-
 for i=1:4 
     x1 = vert(i,1);
     x2 = vert(i,2);
