@@ -1,24 +1,23 @@
-%THERMAL ANALYSIS OF 2D HOMOGENEOUS SURFACES BY FINITE-VOLUME THEORY
+    %THERMAL ANALYSIS OF 2D HOMOGENEOUS SURFACES BY FINITE-VOLUME THEORY
 clear;
 clc;
-
 %__________________________________________________________USER-DEFINED
 H = 1; L = 1;                                               % volume dimensions
-nx2 = 50; nx1 = 50;                                         % subvolumes in x and X2
+ny = 50; nx = 50;                                           % subvolumes in X1 and X2
 k = 25;                                                     % thermal conductivity of the material
-px1 = 35;                                                   % Subvolume for the temperature field plot along the X1 direction
-px2 = 1251;                                                 % Subvolume for the temperature field plot along the X2 direction
-tempFI = 100;                                               % temperature of the bottom faces
-tempFD = 200;                                               % temperature of the right faces
-tempFS = 100;                                               % temperature of the top faces
-tempFE = 100;                                               % temperature of the left faces
+fx1 = 40;                                                   % Face for the temperature field plot along the X2 direction
+fx2 = 1951;                                                 % Face for the temperature field plot along the X1 direction
+tempFB = 100;                                               % temperature of the bottom faces
+tempFR = 200;                                               % temperature of the right faces
+tempFT = 100;                                               % temperature of the top faces
+tempFL = 100;                                               % temperature of the left faces
 
 %_________________________________________________________INITIALIZATION OF DESIGN VARIABLE VECTOR
-l = L/nx1; h = H/nx2;                                       % subvolume dimensions
-FI = 1:1:nx1;                                               % bottom faces
-FS = FI + nx1*nx2;                                          % top faces
-FE = 1 +(nx2+1)*nx1:(nx1+1):1 +(nx2+1)*nx1+(nx1+1)*(nx2-1); % left faces
-FD = FE + nx1;                                              % right faces
+l = L/nx; h = H/ny;                                         % subvolume dimensions
+FB = 1:1:nx;                                                % bottom faces
+FT = FB + nx*ny;                                            % top faces
+FL = 1 +(ny+1)*nx:(nx+1):1 +(ny+1)*nx+(nx+1)*(ny-1);        % left faces
+FR = FL + nx;                                               % right faces
 
 %_________________________________________________________AUXILIARY MATRICES EMPLOYED IN THE FINITE-VOLUME THEORY
 a = ones(4,1);
@@ -38,35 +37,35 @@ ke = B*Ab;
 ke = [ke(1,:)*l;ke(2,:)*h;ke(3,:)*l;ke(4,:)*h];
 
 %_________________________________________________________GLOBAL THERMAL CONDUCTIVITY MATRIX
-Nx2 = nx1*(nx2+1);
-Nx1 = nx2*(nx1+1);
+Nx2 = nx*(ny+1);
+Nx1 = ny*(nx+1);
 Nf = Nx2+Nx1;
 KG = sparse(Nf,Nf);
-[i,j] = ndgrid(1:nx1,1:nx2);
-q = (i+(j-1)*nx1);
-faces = [q(:),q(:)+j(:)+nx1*(nx2+1),q(:)+nx1,q(:)+j(:)-1+nx1*(nx2+1)];
-for i=1:nx1*nx2
+[i,j] = ndgrid(1:nx,1:ny);
+q = (i+(j-1)*nx);
+faces = [q(:),q(:)+j(:)+nx*(ny+1),q(:)+nx,q(:)+j(:)-1+nx*(ny+1)];
+for i=1:nx*ny
     KG(faces(i,:),faces(i,:)) = KG(faces(i,:),faces(i,:))+ke;
 end
 
 %_________________________________________________________FACES OF THE MATERIAL AFTER DISCRETIZATION
-facestemp = [FI,FD,FS,FE];                                 % faces with prescribed temperatures
+facestemp = [FB,FR,FT,FL];                                 % faces with prescribed temperatures
 temperatureFaces = zeros(1,length(facestemp));
 facesfree = 1:max(faces(:));
 facesfree = facesfree(~ismember(facesfree,facestemp));     % faces without prescribed temperatures                       
 
 %_________________________________________________________PRESCRIPTION OF TEMPERATURES ON THE BOTTOM, RIGHT, TOP, AND LEFT FACES
-for i=1:length(FI)
-    temperatureFI(1,i) = tempFI;
+for i=1:length(FB)
+    temperatureFI(1,i) = tempFB;
 end
-for i=1:length(FD)
-    temperatureFD(1,i) = tempFD;
+for i=1:length(FR)
+    temperatureFD(1,i) = tempFR;
 end
-for i=1:length(FS)
-    temperatureFS(1,i) = tempFS;
+for i=1:length(FT)
+    temperatureFS(1,i) = tempFT;
 end
-for i=1:length(FE)
-    temperatureFE(1,i) = tempFE;
+for i=1:length(FL)
+    temperatureFE(1,i) = tempFL;
 end
 temperatureFaces = [temperatureFI,temperatureFD,temperatureFS,temperatureFE]';
 
@@ -78,8 +77,8 @@ Ta = (Kaa^-1)*(Qa-Kab*temperatureFaces);
 T = zeros(Nf,1);  
 T(facesfree,1) = Ta; 
 T(facestemp,1) = temperatureFaces; 
-Tij = zeros(nx1*nx2,4);
-for b=1:nx1*nx2
+Tij = zeros(nx*ny,4);
+for b=1:nx*ny
     sv(b).T = T(faces(b,:)); 
     T00(b) = ab*sv(b).T;
     sv(b).T00 = ab*sv(b).T; 
@@ -87,22 +86,22 @@ for b=1:nx1*nx2
 end
 
 %_________________________________________________________AVERAGE TEMPERATURE AT THE NODES
-Tno = zeros(((nx1*nx2)*4),3);
+Tno = zeros(((nx*ny)*4),3);
 count = 1;
-for j = 1:nx2
-    for i = 1:nx1 
-        q = i + (j-1)*nx1;
+for j = 1:ny
+    for i = 1:nx 
+        q = i + (j-1)*nx;
         vert = [(i-1)*l,(j-1)*h; i*l,(j-1)*h; i*l,j*h; (i-1)*l,j*h];
-        if q==px1
+        if q==fx1
             cood_px = vert(1,1);
         end
-        if q==px2
+        if q==fx2
             cood_py = vert(1,2);
         end
         
         t = nodaltemp(sv(q),l,h);
         
-               if count<=(nx2*nx1)*4
+               if count<=(ny*nx)*4
                 Tno(count,1) = vert(1,1);
                 Tno(count,2) = vert(1,2);
                 Tno(count,3) = t(1,1);
@@ -127,30 +126,37 @@ me_temperatures = temperatures ./ count;                   % calculates the aver
 Tno_M = [coords_u, me_temperatures];                       % matrix with coordinates of each node and their average temperatures
 
 %_________________________________________________________PLOTTING OF THE NODAL TEMPERATURE FIELD
+tt = [];
+figure (1);
+hold on
 
-xnodes = unique(Tno_M(:,1));   
-ynodes = unique(Tno_M(:,2));   
-[~,~,ix] = unique(Tno_M(:,1));   
-[~,~,iy] = unique(Tno_M(:,2));   
-Zsum = accumarray([iy ix], Tno_M(:,3), [], @sum);
-Zcnt = accumarray([iy ix], 1,          [], @sum);
-Z    = Zsum ./ Zcnt;                   
+for j = 1:ny
+    for i = 1:nx 
+        q = i + (j-1)*nx;
+        vert = [(i-1)*l,(j-1)*h; i*l,(j-1)*h; i*l,j*h; (i-1)*l,j*h];
 
-[Xg, Yg] = meshgrid(xnodes, ynodes);
-figure(1);
-surf(Xg, Yg, Z);
-view(2);                
-shading flat;          
-axis equal tight;
-colormap(turbo);
-colorbar;
-xlabel('$x_1$', 'Interpreter', 'latex', 'FontSize', 16, ...
-       'Color', 'black', 'FontWeight', 'bold');
-ylabel('$x_2$', 'Interpreter', 'latex', 'FontSize', 16, ...
-       'Color', 'black', 'FontWeight', 'bold');
-title('Finite-Volume Theory (FVT)', 'Interpreter', 'latex', 'FontSize', 16);
-set(gca,'FontSize',12);
+        for ii = 1:4
+            for jj = 1:size(Tno_M)
+                if vert(ii,1) == Tno_M(jj,1) && vert(ii,2) == Tno_M(jj,2);
+                    tt(ii) = Tno_M(jj,3);
+                end
+            end
+        end
 
+    mdl = scatteredInterpolant(vert(:,1), vert(:,2), tt', 'natural');   
+    xg = linspace(min(vert(:,1)'), max(vert(:,1)'), 5);
+    yg = linspace(min(vert(:,2)'), max(vert(:,2)'), 5);   
+    [Xg, Yg] = meshgrid(xg, yg);
+    Zg = mdl(Xg, Yg);
+    surf(Xg, Yg, Zg,'edgecolor','none','facecolor','interp');    
+    end
+end
+    colormap(turbo);
+    colorbar;
+    set(gca, 'FontSize', 12);
+    xlabel('$x_1$', 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold');
+    ylabel('$x_2$', 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold');
+    title('Finite-Volume Theory (FVT)', 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold');
    
 %_________________________________________________________PLOTTING OF THE TEMPERATURE FIELD WITH A CUT ALONG THE X2 AXIS
 x = 0:0.01:L;
@@ -171,19 +177,20 @@ end
 
 ppx = l/2:l:L;
 for i=1:1:length(ppx)
-    Tpx(i)=sv(px2).T(1);
-    px2=px2+1;
+    Tpx(i)=sv(fx2).T(1);
+    fx2=fx2+1;
 end
 figure(2)
 plot(x, Temp, 'k');
 hold on;
 plot(ppx,Tpx,'ro');
 hold off;
+set(gca, 'FontSize', 12);
 legend({'Analytical Solution', 'FVT'}, 'Interpreter', 'latex');
-xlabel('$x_1$', 'Interpreter', 'latex', 'FontSize', 16, 'Color', 'black', 'FontWeight', 'bold');
-ylabel('Temperature ($^\circ$C)', 'Interpreter', 'latex', 'FontSize', 16, 'Color', 'black', 'FontWeight', 'bold')
+xlabel('$x_1$', 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold');
+ylabel('Temperature ($^\circ$C)', 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold')
 title1 = sprintf('Temperature field at $x_2 = %.2f$',cood_py);
-title(title1, 'Interpreter', 'latex', 'FontSize', 16, 'Color', 'black', 'FontWeight', 'bold');
+title(title1, 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold');
 ylim([floor(min(Tpx))-10 floor(max(Tpx))+10]);
 yticks(100:20:floor(max(Tpx))+5);
 xticks(0:0.2:L);
@@ -208,19 +215,20 @@ end
 
 ppy = h/2:h:H;
 for i=1:1:length(ppy)
-    Tpy(i)=sv(px1).T(4);
-    px1=px1+nx1;
+    Tpy(i)=sv(fx1).T(4);
+    fx1=fx1+nx;
 end
 figure(3)
 plot(x, Temp, 'k');
 hold on;
 plot(ppy,Tpy,'ro');
 hold off;
+set(gca, 'FontSize', 12);
 legend({'Analytical Solution', 'FVT'}, 'Interpreter', 'latex');
-xlabel('$x_2$', 'Interpreter', 'latex', 'FontSize', 16, 'Color', 'black', 'FontWeight', 'bold');
-ylabel('Temperature ($^\circ$C)', 'Interpreter', 'latex', 'FontSize', 16, 'Color', 'black', 'FontWeight', 'bold')
+xlabel('$x_2$', 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold');
+ylabel('Temperature ($^\circ$C)', 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold')
 title1 = sprintf('Temperature field at $x_1 = %.2f$',cood_px);
-title(title1, 'Interpreter', 'latex', 'FontSize', 16, 'Color', 'black', 'FontWeight', 'bold');
+title(title1, 'Interpreter', 'latex', 'FontSize', 20, 'Color', 'black', 'FontWeight', 'bold');
 ylim([floor(min(Tpy))-10 floor(max(Tpy))+10]);
 yticks(100:20:floor(max(Tpy))+5);
 xticks(0:0.2:H);
